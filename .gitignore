@@ -1,0 +1,47 @@
+# Python cache and build artifacts
+__pycache__/
+*.py[cod]
+*.so
+build/
+dist/
+*.egg-info/
+
+# Virtual environments and local environment files
+.venv/
+venv/
+env/
+.env
+.env.*
+
+# IDE and operating-system files
+.vscode/
+.idea/
+.DS_Store
+
+# Logs and visualization output
+*.log
+tb_logger/
+
+# Datasets (retain the small placement/readme files)
+dataset/**
+!dataset/put_the_dataset_here.md
+!dataset/LOL-v1/
+!dataset/LOL-v1/readme.txt
+
+# Generated experiment and inference output
+experiments/
+results/
+lolv1_offical_results/
+decom_tools/experiments/
+
+# Model weights and training states
+pretrained_weights/
+decom_weights/
+*.pth
+*.pt
+*.ckpt
+*.state
+
+# Local Codex metadata
+.agents/
+.codex/

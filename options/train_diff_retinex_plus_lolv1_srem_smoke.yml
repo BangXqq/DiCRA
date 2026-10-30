@@ -1,0 +1,104 @@
+# Final bounded RMoE candidate: spatial Retinex-conditioned expert modulation.
+name: Diff_Retinex_Plus_LOLv1_SREM_Smoke
+model_type: DRNetModel
+num_gpu: 1
+manual_seed: 1234
+
+datasets:
+  train:
+    name: train
+    type: LoLDataset
+    gt_root: "./dataset/LOL-v1/our485/high"
+    input_root: "./dataset/LOL-v1/our485/low"
+    input_mode: crop
+    crop_size: 160
+    concat_with_hiseq: true
+    hiseq_random_cat: true
+    mean: [0.5, 0.5, 0.5]
+    std: [0.5, 0.5, 0.5]
+    use_flip: true
+    bright_aug: true
+    bright_aug_range: [0.5, 1.5]
+    LL_mixup_aug: true
+    LL_mixup_aug_range: [0.9, 1.]
+    use_shuffle: true
+    num_worker_per_gpu: 8
+    batch_size_per_gpu: 4
+    dataset_enlarge_ratio: 1
+    prefetch_mode: ~
+  val:
+    name: LOL
+    type: LoLDataset
+    gt_root: "./dataset/LOL-v1/eval15/high"
+    input_root: "./dataset/LOL-v1/eval15/low"
+    input_mode: pad
+    divide: 32
+    concat_with_hiseq: true
+    mean: [0.5, 0.5, 0.5]
+    std: [0.5, 0.5, 0.5]
+
+network_sr3unet:
+  type: SR3UNet
+  in_channel: 9
+  out_channel: 3
+  inner_channel: 64
+  norm_groups: 32
+  channel_mults: [1,2,4,4]
+  attn_res: [16]
+  res_blocks: 2
+  dropout: 0.1
+  divide: 16
+network_consistentunet:
+  type: DRNet_Retinex_time
+  inp_channels: 9
+  out_channels: 3
+  dim: 32
+  retinex_spatial_modulation: true
+network_decom:
+  type: DecomNet
+  path: "./decom_tools/experiments/TDN_train_20260826-112728/weights/checkpoint_Diff_TDN.pth"
+network_ddpm:
+  type: GaussianDiffusion
+  image_size: 128
+  channels: 3
+  conditional: true
+ddpm_schedule:
+  schedule: linear
+  n_timestep: 2000
+  linear_start: !!float 1e-6
+  linear_end: !!float 1e-2
+path:
+  pretrain_network_ddpm: "./pretrained_weights/lolv1/net_g_ddpm_val_lolv1.pth"
+  strict_load_ddpm: false
+  resume_state: ~
+train:
+  train_rmoe_router_only: true
+  optim_g:
+    type: Adam
+    lr: !!float 1e-4
+    weight_decay: 0
+    betas: [0.9, 0.99]
+  scheduler:
+    type: MultiStepLR
+    milestones: [800, 1600]
+    gamma: 0.5
+  total_iter: 2000
+  warmup_iter: -1
+val:
+  fix_seed: true
+  ddim_eta: !!float 1.0
+  ddim_timesteps: 5
+  use_gt_means: false
+  val_freq: 500
+  cal_all: true
+  show_all: true
+  save_img: true
+  metrics:
+    psnr: {type: calculate_psnr, crop_border: 0, test_y_channel: false}
+    ssim: {type: calculate_ssim, crop_border: 0}
+logger:
+  print_freq: 100
+  save_checkpoint_freq: 500
+  use_tb_logger: false
+  wandb: {project: ~, resume_id: ~}
+dist_params: {backend: nccl, port: 29500}
